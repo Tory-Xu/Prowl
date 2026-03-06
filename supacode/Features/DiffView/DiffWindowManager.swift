@@ -37,7 +37,9 @@ final class DiffWindowManager {
     newWindow.toolbar = NSToolbar(identifier: "DiffToolbar")
     newWindow.isReleasedWhenClosed = false
     newWindow.minSize = NSSize(width: 600, height: 400)
-    if !newWindow.setFrameAutosaveName("DiffWindow") {
+    let hasSavedFrame = UserDefaults.standard.string(forKey: "NSWindow Frame DiffWindow") != nil
+    newWindow.setFrameAutosaveName("DiffWindow")
+    if !hasSavedFrame {
       newWindow.setContentSize(NSSize(width: 1000, height: 700))
       newWindow.center()
     }
