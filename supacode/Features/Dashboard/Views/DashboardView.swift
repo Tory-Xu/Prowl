@@ -23,36 +23,40 @@ struct DashboardView: View {
       let activeStates = terminalManager.activeWorktreeStates
 
       // Background layer: handles canvas pan and tap-to-unfocus.
-      // Placed first so cards are on top for hit testing.
       Color.clear
         .contentShape(.rect)
         .accessibilityAddTraits(.isButton)
         .onTapGesture { unfocusAll() }
         .gesture(canvasPanGesture)
 
-      // Cards layer: each card is scaled and positioned individually.
+      // Cards layer: each card uses .position() for committed layout
+      // and .offset() for in-flight drag (pure CA transform, no layout pass).
       ForEach(activeStates, id: \.worktreeID) { state in
         if let surfaceView = state.activeSurfaceView {
-          let baseLayout = resolvedLayout(for: state.worktreeID, canvasSize: geometry.size)
-          let computed = computedFrame(for: state.worktreeID, baseLayout: baseLayout)
+          let worktreeID = state.worktreeID
+          let baseLayout = resolvedLayout(for: worktreeID, canvasSize: geometry.size)
+          let resized = resizedFrame(for: worktreeID, baseLayout: baseLayout)
+          let drag = dragOffset[worktreeID] ?? .zero
+
           DashboardCardView(
             repositoryName: Repository.name(for: state.repositoryRootURL),
             worktreeName: state.worktreeName,
             surfaceView: surfaceView,
-            isFocused: focusedWorktreeID == state.worktreeID,
+            isFocused: focusedWorktreeID == worktreeID,
             hasUnseenNotification: state.hasUnseenNotification,
-            cardSize: computed.size,
-            onTap: { focusCard(state.worktreeID, states: activeStates) },
-            onDragPosition: { translation in dragOffset[state.worktreeID] = translation },
-            onDragPositionEnd: { commitDrag(for: state.worktreeID) },
+            cardSize: resized.size,
+            onTap: { focusCard(worktreeID, states: activeStates) },
+            onDragPosition: { translation in dragOffset[worktreeID] = translation },
+            onDragPositionEnd: { commitDrag(for: worktreeID) },
             onResize: { edge, translation in
-              activeResize[state.worktreeID] = ActiveResize(edge: edge, translation: translation)
+              activeResize[worktreeID] = ActiveResize(edge: edge, translation: translation)
             },
-            onResizeEnd: { commitResize(for: state.worktreeID, surfaceView: surfaceView) }
+            onResizeEnd: { commitResize(for: worktreeID, surfaceView: surfaceView) }
           )
           .scaleEffect(canvasScale, anchor: .center)
-          .position(screenPosition(for: computed.center))
-          .zIndex(focusedWorktreeID == state.worktreeID ? 1 : 0)
+          .position(screenPosition(for: resized.center))
+          .offset(x: drag.width * canvasScale, y: drag.height * canvasScale)
+          .zIndex(focusedWorktreeID == worktreeID ? 1 : 0)
         }
       }
     }
@@ -113,8 +117,9 @@ struct DashboardView: View {
     )
   }
 
-  /// Compute effective center and size for a card, accounting for drag and resize.
-  private func computedFrame(
+  /// Compute effective center and size accounting for resize only (not drag).
+  /// Drag is applied separately via `.offset()` to avoid layout passes.
+  private func resizedFrame(
     for worktreeID: Worktree.ID,
     baseLayout: DashboardCardLayout
   ) -> (center: CGPoint, size: CGSize) {
@@ -123,12 +128,6 @@ struct DashboardView: View {
     var width = baseLayout.size.width
     var height = baseLayout.size.height
 
-    // Apply drag offset (in canvas space)
-    let drag = dragOffset[worktreeID] ?? .zero
-    centerX += drag.width
-    centerY += drag.height
-
-    // Apply resize with proper edge anchoring
     if let resize = activeResize[worktreeID] {
       let translationX = resize.translation.width
       let translationY = resize.translation.height
@@ -170,7 +169,6 @@ struct DashboardView: View {
     return (CGPoint(x: centerX, y: centerY), CGSize(width: width, height: height))
   }
 
-  /// Convert canvas-space center to screen-space position for SwiftUI `.position()`.
   private func screenPosition(for canvasCenter: CGPoint) -> CGPoint {
     CGPoint(
       x: canvasCenter.x * canvasScale + canvasOffset.width,
@@ -201,11 +199,11 @@ struct DashboardView: View {
   // MARK: - Resize
 
   private func commitResize(for worktreeID: Worktree.ID, surfaceView: GhosttySurfaceView) {
-    guard let resize = activeResize[worktreeID] else { return }
+    guard activeResize[worktreeID] != nil else { return }
     if var layout = layoutStore.cardLayouts[worktreeID] {
-      let computed = computedFrame(for: worktreeID, baseLayout: layout)
-      layout.position = computed.center
-      layout.size = computed.size
+      let resized = resizedFrame(for: worktreeID, baseLayout: layout)
+      layout.position = resized.center
+      layout.size = resized.size
       layoutStore.cardLayouts[worktreeID] = layout
     }
     activeResize[worktreeID] = nil
@@ -247,11 +245,9 @@ struct DashboardView: View {
   // MARK: - Occlusion
 
   private func activateDashboard() {
-    // First occlude and unfocus ALL surfaces across all worktrees
     for state in terminalManager.activeWorktreeStates {
       state.setAllSurfacesOccluded()
     }
-    // Then make dashboard surfaces visible (not focused until clicked)
     for state in terminalManager.activeWorktreeStates {
       state.activeSurfaceView?.setOcclusion(true)
     }

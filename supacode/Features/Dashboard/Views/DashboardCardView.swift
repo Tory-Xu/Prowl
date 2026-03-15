@@ -20,8 +20,6 @@ struct DashboardCardView: View {
   }
 
   private let titleBarHeight: CGFloat = 28
-  private let edgeThickness: CGFloat = 6
-  private let cornerSize: CGFloat = 12
   private let cornerRadius: CGFloat = 8
 
   var body: some View {
@@ -35,7 +33,7 @@ struct DashboardCardView: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .stroke(isFocused ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: isFocused ? 2 : 1)
     }
-    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
     .overlay { resizeHandles }
     .contentShape(.rect)
     .accessibilityAddTraits(.isButton)
@@ -77,36 +75,63 @@ struct DashboardCardView: View {
 
   // MARK: - Resize Handles
 
+  private let edgeThickness: CGFloat = 10
+  private let cornerSide: CGFloat = 18
+
   private var resizeHandles: some View {
     ZStack {
-      // Edge handles
-      edgeHandle(.resizeLeftRight, alignment: .leading) { translation in
+      // Edge handles — centered on card edge (half inside, half outside)
+      edgeHandle(
+        cursor: .frameResize(position: .left, directions: .all),
+        isVertical: true,
+        edgeOffset: CGSize(width: -edgeThickness / 2, height: 0)
+      ) { translation in
         onResize(.leading, translation)
       }
-      edgeHandle(.resizeLeftRight, alignment: .trailing) { translation in
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+
+      edgeHandle(
+        cursor: .frameResize(position: .right, directions: .all),
+        isVertical: true,
+        edgeOffset: CGSize(width: edgeThickness / 2, height: 0)
+      ) { translation in
         onResize(.trailing, translation)
       }
-      edgeHandle(.resizeUpDown, alignment: .bottom) { translation in
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+
+      edgeHandle(
+        cursor: .frameResize(position: .bottom, directions: .all),
+        isVertical: false,
+        edgeOffset: CGSize(width: 0, height: edgeThickness / 2)
+      ) { translation in
         onResize(.bottom, translation)
       }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
-      // Corner handles
-      cornerHandle(alignment: .bottomLeading) { translation in
+      // Corner handles — positioned at card corners, extending outward
+      cornerHandle(
+        cursor: .frameResize(position: .bottomLeft, directions: .all),
+        alignment: .bottomLeading
+      ) { translation in
         onResize(.bottomLeading, translation)
       }
-      cornerHandle(alignment: .bottomTrailing) { translation in
+
+      cornerHandle(
+        cursor: .frameResize(position: .bottomRight, directions: .all),
+        alignment: .bottomTrailing
+      ) { translation in
         onResize(.bottomTrailing, translation)
       }
     }
   }
 
   private func edgeHandle(
-    _ cursor: NSCursor,
-    alignment: Alignment,
+    cursor: NSCursor,
+    isVertical: Bool,
+    edgeOffset: CGSize,
     onChange: @escaping (CGSize) -> Void
   ) -> some View {
-    let isVertical = alignment == .leading || alignment == .trailing
-    return ResizeCursorView(cursor: cursor) {
+    ResizeCursorView(cursor: cursor) {
       Color.clear
         .frame(
           width: isVertical ? edgeThickness : nil,
@@ -123,16 +148,17 @@ struct DashboardCardView: View {
             .onEnded { _ in onResizeEnd() }
         )
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    .offset(edgeOffset)
   }
 
   private func cornerHandle(
+    cursor: NSCursor,
     alignment: Alignment,
     onChange: @escaping (CGSize) -> Void
   ) -> some View {
-    ResizeCursorView(cursor: .crosshair) {
+    ResizeCursorView(cursor: cursor) {
       Color.clear
-        .frame(width: cornerSize, height: cornerSize)
+        .frame(width: cornerSide, height: cornerSide)
         .contentShape(.rect)
         .gesture(
           DragGesture()
@@ -141,6 +167,10 @@ struct DashboardCardView: View {
         )
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    .offset(
+      x: alignment == .bottomTrailing ? cornerSide / 3 : -cornerSide / 3,
+      y: cornerSide / 3
+    )
   }
 }
 
