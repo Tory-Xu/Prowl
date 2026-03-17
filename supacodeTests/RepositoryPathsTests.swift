@@ -46,7 +46,7 @@ struct SupacodePathsTests {
     let root = URL(fileURLWithPath: "/tmp/work/repo-alpha")
     let settingsURL = SupacodePaths.repositorySettingsURL(for: root)
 
-    #expect(settingsURL.lastPathComponent == "supacode.json")
+    #expect(settingsURL.lastPathComponent == "prowl.json")
     #expect(settingsURL.deletingLastPathComponent().lastPathComponent == "repo-alpha")
     #expect(settingsURL.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == "repo")
   }
@@ -55,7 +55,7 @@ struct SupacodePathsTests {
     let root = URL(fileURLWithPath: "/tmp/work/repo-alpha/.bare")
     let settingsURL = SupacodePaths.onevcatRepositorySettingsURL(for: root)
 
-    #expect(settingsURL.lastPathComponent == "supacode.onevcat.json")
+    #expect(settingsURL.lastPathComponent == "prowl.onevcat.json")
     #expect(settingsURL.deletingLastPathComponent().lastPathComponent == ".bare")
     #expect(settingsURL.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == "repo")
   }
