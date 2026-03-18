@@ -100,7 +100,7 @@ struct CanvasView: View {
       }
     }
     .overlay(alignment: .bottomTrailing) {
-      organizeButton
+      canvasToolbar
     }
     .task { activateCanvas() }
     .onDisappear { deactivateCanvas() }
@@ -243,7 +243,7 @@ struct CanvasView: View {
     }
   }
 
-  /// Reset all card positions to a clean grid layout.
+  /// Reset all card positions to a clean grid layout (uniform sizes).
   private func organizeCards() {
     let keys = collectCardKeys(from: terminalManager.activeWorktreeStates)
     let columns = gridColumns(for: keys.count)
@@ -254,6 +254,76 @@ struct CanvasView: View {
       )
     }
     layoutStore.cardLayouts = layouts
+  }
+
+  /// Arrange cards in a waterfall (masonry) layout that preserves each card's
+  /// current size. Tries every possible column count, picks the one whose
+  /// bounding rectangle best matches the viewport aspect ratio.
+  private func arrangeCards() {
+    let keys = collectCardKeys(from: terminalManager.activeWorktreeStates)
+    guard !keys.isEmpty, viewportSize.width > 0, viewportSize.height > 0 else { return }
+
+    let cardInfos: [(key: String, size: CGSize)] = keys.map { key in
+      let size = layoutStore.cardLayouts[key]?.size ?? CanvasCardLayout.defaultSize
+      return (key, size)
+    }
+
+    let targetRatio = viewportSize.width / viewportSize.height
+    let columnWidth = cardInfos.map(\.size.width).max() ?? CanvasCardLayout.defaultSize.width
+
+    var bestResult: [String: CanvasCardLayout]?
+    var bestRatioDiff = CGFloat.infinity
+
+    for cols in 1...keys.count {
+      let result = waterfallPack(cardInfos: cardInfos, columns: cols, columnWidth: columnWidth)
+
+      let totalWidth = CGFloat(cols) * (columnWidth + cardSpacing) + cardSpacing
+      let ratio = totalWidth / result.totalHeight
+      let diff = abs(ratio - targetRatio)
+
+      if diff < bestRatioDiff {
+        bestRatioDiff = diff
+        bestResult = result.layouts
+      }
+
+      // Once we've overshot the target ratio, further columns only make it worse.
+      if ratio > targetRatio { break }
+    }
+
+    if let bestResult {
+      layoutStore.cardLayouts = bestResult
+    }
+  }
+
+  /// Pack cards into a fixed number of equal-width columns using the waterfall
+  /// rule: each card drops into whichever column is currently shortest.
+  private func waterfallPack(
+    cardInfos: [(key: String, size: CGSize)],
+    columns: Int,
+    columnWidth: CGFloat
+  ) -> (layouts: [String: CanvasCardLayout], totalHeight: CGFloat) {
+    var columnHeights = Array(repeating: cardSpacing, count: columns)
+    var layouts = layoutStore.cardLayouts
+
+    for (key, cardSize) in cardInfos {
+      let col = columnHeights.enumerated().min(by: { $0.element < $1.element })!.offset
+      let totalCardHeight = cardSize.height + titleBarHeight
+
+      // Center the card horizontally within its column slot.
+      let slotX = cardSpacing + CGFloat(col) * (columnWidth + cardSpacing)
+      let centerX = slotX + columnWidth / 2
+      let centerY = columnHeights[col] + totalCardHeight / 2
+
+      layouts[key] = CanvasCardLayout(
+        position: CGPoint(x: centerX, y: centerY),
+        size: cardSize
+      )
+
+      columnHeights[col] += totalCardHeight + cardSpacing
+    }
+
+    let totalHeight = columnHeights.max() ?? cardSpacing
+    return (layouts, totalHeight)
   }
 
   /// Adjust scale and offset so all cards fit within the viewport.
@@ -308,18 +378,31 @@ struct CanvasView: View {
     layoutStore.cardLayouts = layouts
   }
 
-  private var organizeButton: some View {
-    Button {
-      organizeCards()
-      fitToView(canvasSize: viewportSize)
-    } label: {
-      Image(systemName: "square.grid.2x2")
-        .font(.body)
-        .accessibilityLabel("Organize")
+  private var canvasToolbar: some View {
+    HStack(spacing: 8) {
+      Button {
+        arrangeCards()
+        fitToView(canvasSize: viewportSize)
+      } label: {
+        Image(systemName: "rectangle.3.group")
+          .font(.body)
+          .accessibilityLabel("Arrange")
+      }
+      .buttonStyle(.bordered)
+      .help("Arrange cards preserving sizes")
+
+      Button {
+        organizeCards()
+        fitToView(canvasSize: viewportSize)
+      } label: {
+        Image(systemName: "square.grid.2x2")
+          .font(.body)
+          .accessibilityLabel("Organize")
+      }
+      .buttonStyle(.bordered)
+      .help("Organize cards in a uniform grid")
     }
-    .buttonStyle(.bordered)
     .padding()
-    .help("Organize cards in a grid")
   }
 
   // MARK: - Drag
