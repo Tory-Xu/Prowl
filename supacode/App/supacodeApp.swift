@@ -174,7 +174,7 @@ struct SupacodeApp: App {
     .environment(commandKeyObserver)
     .commands {
       WorktreeCommands(store: store)
-      SidebarCommands()
+      SidebarCommands(store: store)
       TerminalCommands(ghosttyShortcuts: ghosttyShortcuts)
       CommandGroup(after: .textEditing) {
         Button("Command Palette") {
