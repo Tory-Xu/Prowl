@@ -30,7 +30,12 @@ struct CanvasView: View {
         // Background layer: handles canvas pan and tap-to-unfocus.
         Color.clear
           .onAppear { ensureLayouts(for: allCardKeys) }
-          .onChange(of: allCardKeys) { _, newKeys in ensureLayouts(for: newKeys) }
+          .onChange(of: allCardKeys) { _, newKeys in
+            if newKeys.isEmpty {
+              CanvasLayoutStore.hasAutoArrangedInSession = false
+            }
+            ensureLayouts(for: newKeys)
+          }
           .contentShape(.rect)
           .accessibilityAddTraits(.isButton)
           .onTapGesture { unfocusAll() }
