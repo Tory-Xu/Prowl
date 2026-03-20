@@ -2447,11 +2447,15 @@ struct RepositoriesFeatureTests {
     )
   }
 
-  private func makeRepository(id: String, worktrees: [Worktree]) -> Repository {
+  private func makeRepository(
+    id: String,
+    name: String = "repo",
+    worktrees: [Worktree]
+  ) -> Repository {
     Repository(
       id: id,
       rootURL: URL(fileURLWithPath: id),
-      name: "repo",
+      name: name,
       worktrees: IdentifiedArray(uniqueElements: worktrees)
     )
   }
@@ -2461,5 +2465,138 @@ struct RepositoriesFeatureTests {
     state.repositories = IdentifiedArray(uniqueElements: repositories)
     state.repositoryRoots = repositories.map(\.rootURL)
     return state
+  }
+
+  @Test func loadPersistedRepositoriesStartsFetchesConcurrentlyAndPreservesRootOrder() async {
+    let testID = UUID().uuidString
+    let repoRootA = "/tmp/\(testID)-repo-a"
+    let repoRootB = "/tmp/\(testID)-repo-b"
+    let worktreeA = makeWorktree(id: "\(repoRootA)/main", name: "main", repoRoot: repoRootA)
+    let worktreeB = makeWorktree(id: "\(repoRootB)/main", name: "main", repoRoot: repoRootB)
+    let repoA = makeRepository(
+      id: repoRootA,
+      name: URL(fileURLWithPath: repoRootA).lastPathComponent,
+      worktrees: [worktreeA]
+    )
+    let repoB = makeRepository(
+      id: repoRootB,
+      name: URL(fileURLWithPath: repoRootB).lastPathComponent,
+      worktrees: [worktreeB]
+    )
+    let gate = AsyncGate()
+    let startedRoots = LockIsolated<Set<String>>([])
+
+    let store = TestStore(initialState: RepositoriesFeature.State()) {
+      RepositoriesFeature()
+    } withDependencies: {
+      $0.repositoryPersistence.loadRoots = { [repoRootA, repoRootB] }
+      $0.gitClient.worktrees = { root in
+        let path = root.path(percentEncoded: false)
+        startedRoots.withValue { $0.insert(path) }
+        if path == repoRootA {
+          await gate.wait()
+          return [worktreeA]
+        }
+        if path == repoRootB {
+          return [worktreeB]
+        }
+        Issue.record("Unexpected root: \(path)")
+        return []
+      }
+    }
+
+    await store.send(.loadPersistedRepositories)
+
+    var secondFetchStarted = false
+    for _ in 0..<100 {
+      if startedRoots.value.contains(repoRootB) {
+        secondFetchStarted = true
+        break
+      }
+      await Task.yield()
+    }
+    #expect(secondFetchStarted)
+
+    await gate.resume()
+
+    await store.receive(\.repositoriesLoaded) {
+      $0.repositories = [repoA, repoB]
+      $0.repositoryRoots = [repoRootA, repoRootB].map { URL(fileURLWithPath: $0) }
+      $0.isInitialLoadComplete = true
+    }
+    await store.receive(\.delegate.repositoriesChanged)
+    await store.finish()
+  }
+
+  @Test func loadPersistedRepositoriesRestoresLastFocusedSelectionAfterFullLoad() async {
+    let testID = UUID().uuidString
+    let repoRootA = "/tmp/\(testID)-repo-a"
+    let repoRootB = "/tmp/\(testID)-repo-b"
+    let worktreeA = makeWorktree(id: "\(repoRootA)/main", name: "main", repoRoot: repoRootA)
+    let worktreeB = makeWorktree(id: "\(repoRootB)/main", name: "main", repoRoot: repoRootB)
+    let repoA = makeRepository(
+      id: repoRootA,
+      name: URL(fileURLWithPath: repoRootA).lastPathComponent,
+      worktrees: [worktreeA]
+    )
+    let repoB = makeRepository(
+      id: repoRootB,
+      name: URL(fileURLWithPath: repoRootB).lastPathComponent,
+      worktrees: [worktreeB]
+    )
+
+    var state = RepositoriesFeature.State()
+    state.lastFocusedWorktreeID = worktreeB.id
+    state.shouldRestoreLastFocusedWorktree = true
+
+    let store = TestStore(initialState: state) {
+      RepositoriesFeature()
+    } withDependencies: {
+      $0.repositoryPersistence.loadRoots = { [repoRootA, repoRootB] }
+      $0.gitClient.worktrees = { root in
+        switch root.path(percentEncoded: false) {
+        case repoRootA:
+          return [worktreeA]
+        case repoRootB:
+          return [worktreeB]
+        default:
+          Issue.record("Unexpected root: \(root.path(percentEncoded: false))")
+          return []
+        }
+      }
+    }
+
+    await store.send(.loadPersistedRepositories)
+    await store.receive(\.repositoriesLoaded) {
+      $0.repositories = [repoA, repoB]
+      $0.repositoryRoots = [repoRootA, repoRootB].map { URL(fileURLWithPath: $0) }
+      $0.selection = .worktree(worktreeB.id)
+      $0.shouldRestoreLastFocusedWorktree = false
+      $0.isInitialLoadComplete = true
+    }
+    await store.receive(\.delegate.repositoriesChanged)
+    await store.receive(\.delegate.selectedWorktreeChanged)
+    await store.finish()
+  }
+
+  private actor AsyncGate {
+    var continuation: CheckedContinuation<Void, Never>?
+    var isOpen = false
+
+    func wait() async {
+      guard !isOpen else { return }
+      await withCheckedContinuation { continuation in
+        self.continuation = continuation
+      }
+    }
+
+    func resume() {
+      if let continuation {
+        continuation.resume()
+        self.continuation = nil
+      } else {
+        isOpen = true
+      }
+    }
   }
 }

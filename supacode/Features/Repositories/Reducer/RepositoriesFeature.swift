@@ -2603,14 +2603,45 @@ struct RepositoriesFeature {
     .cancellable(id: CancelID.load, cancelInFlight: true)
   }
 
+  private struct WorktreesFetchResult: Sendable {
+    let root: URL
+    let worktrees: [Worktree]?
+    let errorMessage: String?
+  }
+
   private func loadRepositoriesData(_ roots: [URL]) async -> ([Repository], [LoadFailure]) {
+    let fetchResults = await withTaskGroup(of: WorktreesFetchResult.self) { group in
+      for root in roots {
+        let gitClient = self.gitClient
+        group.addTask {
+          do {
+            let worktrees = try await gitClient.worktrees(root)
+            return WorktreesFetchResult(root: root, worktrees: worktrees, errorMessage: nil)
+          } catch {
+            return WorktreesFetchResult(
+              root: root,
+              worktrees: nil,
+              errorMessage: error.localizedDescription
+            )
+          }
+        }
+      }
+
+      var resultsByRootID: [Repository.ID: WorktreesFetchResult] = [:]
+      for await result in group {
+        let rootID = result.root.standardizedFileURL.path(percentEncoded: false)
+        resultsByRootID[rootID] = result
+      }
+      return resultsByRootID
+    }
+
     var loaded: [Repository] = []
     var failures: [LoadFailure] = []
     for root in roots {
       let normalizedRoot = root.standardizedFileURL
       let rootID = normalizedRoot.path(percentEncoded: false)
-      do {
-        let worktrees = try await gitClient.worktrees(root)
+      guard let result = fetchResults[rootID] else { continue }
+      if let worktrees = result.worktrees {
         let name = Repository.name(for: normalizedRoot)
         let repository = Repository(
           id: rootID,
@@ -2619,8 +2650,13 @@ struct RepositoriesFeature {
           worktrees: IdentifiedArray(uniqueElements: worktrees)
         )
         loaded.append(repository)
-      } catch {
-        failures.append(LoadFailure(rootID: rootID, message: error.localizedDescription))
+      } else {
+        failures.append(
+          LoadFailure(
+            rootID: rootID,
+            message: result.errorMessage ?? "Unknown error"
+          )
+        )
       }
     }
     return (loaded, failures)
