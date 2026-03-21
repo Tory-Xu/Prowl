@@ -729,10 +729,16 @@ final class WorktreeTerminalState {
   private static func openGhosttyConfig() {
     let configStr = ghostty_config_open_path()
     defer { ghostty_string_free(configStr) }
-    guard let ptr = configStr.ptr else { return }
+    guard let ptr = configStr.ptr else {
+      SupaLogger("Terminal").warning("ghostty_config_open_path returned nil")
+      return
+    }
     let path = String(data: Data(bytes: ptr, count: Int(configStr.len)), encoding: .utf8) ?? ""
     guard !path.isEmpty else { return }
-    NSWorkspace.shared.open(URL(fileURLWithPath: path))
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+    process.arguments = ["-t", path]
+    try? process.run()
   }
 
   private func promptTabTitle(for tabId: TerminalTabID, in window: NSWindow) {
