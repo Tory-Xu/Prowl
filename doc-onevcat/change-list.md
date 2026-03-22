@@ -32,3 +32,16 @@
 | Add PR target rule to CLAUDE.md: always target `onevcat/supacode`, never upstream. | `962ba62` | Fork only |
 | Rebrand user-facing identity from Supacode to Prowl: app name, icon, bundle display name, settings file paths (`prowl.json`), subsystem identifiers, and about/UI strings. Keep module name as `supacode` for code compatibility. | `5f7d84a`…`5676418` | Fork only |
 | Add public release infrastructure: Sparkle EdDSA key setup, date-based version scheme (`YYYY.M.DD`), full release script with DMG/notarization/appcast, `install-release` Makefile target, `/release` and `/sync-upstream` commands. | — | Fork only |
+| Parallelize repository startup loading to speed up launch with many repos. | `8dd8eac` | Merged upstream |
+| Run bundled `wt` binary directly instead of shell discovery for faster worktree operations. | `ed27b31` | Merged upstream |
+| Evolve Canvas card layout algorithm (waterfall → MaxRects → combined row-break + waterfall packing) for better space utilization; auto-arrange cards on first Canvas entry per session; improved fit-to-view scaling. | `15bafd1`…`fc81375` | Fork only |
+| Add Canvas toggle shortcut; auto-focus the previously active card when entering Canvas; exit Canvas to the focused worktree+tab; move Canvas and Show Diff to View menu. | `38a6361`, `3c4dc3c`, `17df275`, `d9dde25` | Fork only |
+| Implement Ghostty `prompt-title` and `open-config` callbacks: surface prompts update tab titles; open-config opens Ghostty config in default text editor. | `2b55336`…`1352165` | Fork only |
+| Route Ghostty window actions (`toggle_fullscreen`, `toggle_maximize`, `toggle_background_opacity`, `quit`, `close_window`) through Prowl; quit goes through TCA `requestQuit` for confirm-before-quit. | `5ca2bf4`…`4732780` | Fork only |
+| Filter duplicate and unsupported Ghostty actions from command palette. | `512c5b3`, `c8c562f` | Fork only |
+| Add command finished notification for long-running terminal commands with configurable duration threshold; Canvas highlights the entire title bar for unseen notifications, tracked per-tab. | `182e165`…`d7bb4b6` | Fork only |
+| Mark notifications as read on key input to focused terminal surface; suppress command finished notification after recent user interaction. | `26968c1`, `2db9ae5` | Fork only |
+| Add repository snapshot startup cache to skip full git scan on re-launch when worktrees haven't changed. | `7136591` | Pending upstream (#162) |
+| Fix unicode paths in diff and untracked file output. | `1b32a26` | Fork only |
+| Fix settings migration to copy instead of move, preserving `~/.supacode` for upstream compatibility. | `07121b6` | Fork only |
+| Use Claude to generate user-facing release notes; skip generation when pre-written notes exist. | `64d0928`, `849b5cf` | Fork only |
