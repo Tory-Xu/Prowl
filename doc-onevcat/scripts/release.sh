@@ -225,7 +225,9 @@ generate_fallback_notes() {
   fi
 }
 
-if [[ -n "$PREV_TAG" ]]; then
+if [[ -s "$NOTES_FILE" ]]; then
+  log "using existing release notes from $NOTES_FILE"
+elif [[ -n "$PREV_TAG" ]]; then
   RANGE="$PREV_TAG..$TAG"
   if command -v claude >/dev/null 2>&1; then
     log "generating release notes with LLM..."
