@@ -65,11 +65,6 @@ struct CanvasCardView: View {
 
   private var titleBar: some View {
     HStack(spacing: 6) {
-      if hasUnseenNotification {
-        Circle()
-          .fill(Color.orange)
-          .frame(width: 6, height: 6)
-      }
       Text(repositoryName)
         .font(.caption.bold())
         .lineLimit(1)
@@ -82,6 +77,11 @@ struct CanvasCardView: View {
     .padding(.horizontal, 8)
     .frame(height: titleBarHeight)
     .frame(maxWidth: .infinity)
+    .background {
+      if hasUnseenNotification {
+        Color.orange.opacity(0.3)
+      }
+    }
     .background(.bar)
     .gesture(
       DragGesture(coordinateSpace: .global)
