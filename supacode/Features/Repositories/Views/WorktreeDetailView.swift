@@ -3,6 +3,18 @@ import ComposableArchitecture
 import SwiftUI
 
 struct WorktreeDetailView: View {
+  private struct ToolbarStateInput {
+    let repositories: RepositoriesFeature.State
+    let selectedWorktree: Worktree?
+    let notificationGroups: [ToolbarNotificationRepositoryGroup]
+    let unseenNotificationWorktreeCount: Int
+    let openActionSelection: OpenWorktreeAction
+    let showExtras: Bool
+    let runScriptEnabled: Bool
+    let runScriptIsRunning: Bool
+    let customCommands: [OnevcatCustomCommand]
+  }
+
   @Bindable var store: StoreOf<AppFeature>
   let terminalManager: WorktreeTerminalManager
   @Environment(CommandKeyObserver.self) private var commandKeyObserver
@@ -59,15 +71,17 @@ struct WorktreeDetailView: View {
         }
       } else if hasActiveTerminalTarget,
         let toolbarState = toolbarState(
-          repositories: repositories,
-          selectedWorktree: selectedWorktree,
-          notificationGroups: notificationGroups,
-          unseenNotificationWorktreeCount: unseenNotificationWorktreeCount,
-          openActionSelection: openActionSelection,
-          showExtras: commandKeyObserver.isPressed,
-          runScriptEnabled: runScriptEnabled,
-          runScriptIsRunning: runScriptIsRunning,
-          customCommands: customCommands
+          input: ToolbarStateInput(
+            repositories: repositories,
+            selectedWorktree: selectedWorktree,
+            notificationGroups: notificationGroups,
+            unseenNotificationWorktreeCount: unseenNotificationWorktreeCount,
+            openActionSelection: openActionSelection,
+            showExtras: commandKeyObserver.isPressed,
+            runScriptEnabled: runScriptEnabled,
+            runScriptIsRunning: runScriptIsRunning,
+            customCommands: customCommands
+          )
         )
       {
         WorktreeToolbarContent(
@@ -105,41 +119,31 @@ struct WorktreeDetailView: View {
     return applyFocusedActions(content: content, actions: actions)
   }
 
-  private func toolbarState(
-    repositories: RepositoriesFeature.State,
-    selectedWorktree: Worktree?,
-    notificationGroups: [ToolbarNotificationRepositoryGroup],
-    unseenNotificationWorktreeCount: Int,
-    openActionSelection: OpenWorktreeAction,
-    showExtras: Bool,
-    runScriptEnabled: Bool,
-    runScriptIsRunning: Bool,
-    customCommands: [OnevcatCustomCommand]
-  ) -> WorktreeToolbarState? {
+  private func toolbarState(input: ToolbarStateInput) -> WorktreeToolbarState? {
     guard let title = DetailToolbarTitle.forSelection(
-      worktree: selectedWorktree,
-      repository: repositories.selectedRepository
+      worktree: input.selectedWorktree,
+      repository: input.repositories.selectedRepository
     ) else {
       return nil
     }
-    let pullRequest = selectedWorktree.flatMap { repositories.worktreeInfo(for: $0.id)?.pullRequest }
+    let pullRequest = input.selectedWorktree.flatMap { input.repositories.worktreeInfo(for: $0.id)?.pullRequest }
     let matchesBranch =
-      if let selectedWorktree, let pullRequest {
+      if let selectedWorktree = input.selectedWorktree, let pullRequest {
         pullRequest.headRefName == nil || pullRequest.headRefName == selectedWorktree.name
       } else {
         false
       }
     return WorktreeToolbarState(
       title: title,
-      statusToast: repositories.statusToast,
+      statusToast: input.repositories.statusToast,
       pullRequest: matchesBranch ? pullRequest : nil,
-      notificationGroups: notificationGroups,
-      unseenNotificationWorktreeCount: unseenNotificationWorktreeCount,
-      openActionSelection: openActionSelection,
-      showExtras: showExtras,
-      runScriptEnabled: runScriptEnabled,
-      runScriptIsRunning: runScriptIsRunning,
-      customCommands: customCommands
+      notificationGroups: input.notificationGroups,
+      unseenNotificationWorktreeCount: input.unseenNotificationWorktreeCount,
+      openActionSelection: input.openActionSelection,
+      showExtras: input.showExtras,
+      runScriptEnabled: input.runScriptEnabled,
+      runScriptIsRunning: input.runScriptIsRunning,
+      customCommands: input.customCommands
     )
   }
 

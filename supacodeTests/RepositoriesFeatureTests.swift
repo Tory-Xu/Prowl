@@ -227,11 +227,10 @@ struct RepositoriesFeatureTests {
     await store.receive(\.delegate.repositoriesChanged)
     await store.finish()
 
-    #expect(
-      savedEntries.value == [[
-        PersistedRepositoryEntry(path: root, kind: .git)
-      ]]
-    )
+    let expectedSavedEntries = [
+      [PersistedRepositoryEntry(path: root, kind: .git)],
+    ]
+    #expect(savedEntries.value == expectedSavedEntries)
   }
 
   @Test func loadPersistedRepositoriesDoesNotUpgradePlainFolderWhenOnlyAncestorIsGitRoot() async {
@@ -317,11 +316,10 @@ struct RepositoriesFeatureTests {
     await store.receive(\.delegate.repositoriesChanged)
     await store.finish()
 
-    #expect(
-      savedEntries.value == [[
-        PersistedRepositoryEntry(path: root, kind: .plain)
-      ]]
-    )
+    let expectedSavedEntries = [
+      [PersistedRepositoryEntry(path: root, kind: .plain)],
+    ]
+    #expect(savedEntries.value == expectedSavedEntries)
   }
 
   @Test func loadPersistedRepositoriesDoesNotDowngradeGitRepoOnUnexpectedProbeError() async {
@@ -418,12 +416,13 @@ struct RepositoriesFeatureTests {
     await store.receive(\.delegate.repositoriesChanged)
     await store.finish()
 
-    #expect(
-      savedEntries.value == [[
+    let expectedSavedEntries = [
+      [
         PersistedRepositoryEntry(path: repoRoot, kind: .git),
         PersistedRepositoryEntry(path: plainRoot, kind: .plain),
-      ]]
-    )
+      ],
+    ]
+    #expect(savedEntries.value == expectedSavedEntries)
   }
 
   @Test func repositoriesLoadedPersistsRepositorySnapshotOnSuccess() async {

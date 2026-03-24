@@ -12,7 +12,7 @@ struct RepositorySettingsFeatureTests {
     let settingsStorage = SettingsTestStorage()
     let localStorage = RepositoryLocalSettingsTestStorage()
     let settingsFileURL = URL(fileURLWithPath: "/tmp/supacode-settings-\(UUID().uuidString).json")
-    let expectedGlobalDefaultWorktreeBaseDirectoryPath =
+    let expectedDefaultWorktreeBaseDirectoryPath =
       SupacodePaths.normalizedWorktreeBaseDirectoryPath("/tmp/worktrees")
     let storedSettings = RepositorySettings(
       setupScript: "echo setup",
@@ -76,7 +76,7 @@ struct RepositorySettingsFeatureTests {
     await store.receive(\.settingsLoaded, timeout: .seconds(5)) {
       $0.settings = storedSettings
       $0.onevcatSettings = storedOnevcatSettings
-      $0.globalDefaultWorktreeBaseDirectoryPath = expectedGlobalDefaultWorktreeBaseDirectoryPath
+      $0.globalDefaultWorktreeBaseDirectoryPath = expectedDefaultWorktreeBaseDirectoryPath
     }
     await store.finish(timeout: .seconds(5))
 

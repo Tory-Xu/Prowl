@@ -2741,7 +2741,7 @@ struct RepositoriesFeature {
         }
       }
 
-      var results = Array<PersistedRepositoryEntry?>(repeating: nil, count: entries.count)
+      var results = [PersistedRepositoryEntry?](repeating: nil, count: entries.count)
       for await (index, entry) in group {
         results[index] = entry
       }

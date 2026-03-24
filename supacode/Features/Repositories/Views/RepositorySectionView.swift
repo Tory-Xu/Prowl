@@ -18,6 +18,9 @@ struct RepositorySectionView: View {
     let state = store.state
     let isExpanded = expandedRepoIDs.contains(repository.id)
     let isRemovingRepository = state.isRemovingRepository(repository)
+    let isPlainFolderSelected =
+      repository.kind == .plain
+      && state.selectedRepositoryID == repository.id
     let openRepoSettings = {
       _ = store.send(.openRepositorySettings(repository.id))
     }
@@ -158,7 +161,7 @@ struct RepositorySectionView: View {
       }
     }
     .overlay(alignment: .top) {
-      if showsTopSeparator {
+      if showsTopSeparator && !isPlainFolderSelected {
         Rectangle()
           .fill(Self.debugHeaderLayers ? .blue : .secondary)
           .frame(height: 1)
