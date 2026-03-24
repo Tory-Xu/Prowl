@@ -193,7 +193,7 @@ struct SupacodeApp: App {
       }
       UpdateCommands(store: store.scope(state: \.updates, action: \.updates))
       CommandGroup(replacing: .windowArrangement) {
-        Button("Supacode") {
+        Button("Prowl") {
           if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
