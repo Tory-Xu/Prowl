@@ -147,6 +147,9 @@ struct SidebarView: View {
     if state.isShowingArchivedWorktrees {
       return [.archivedWorktrees]
     }
+    if let selectedRepositoryID = state.selectedRepositoryID {
+      return [.repository(selectedRepositoryID)]
+    }
     var normalized = Set(
       state.sidebarSelectedWorktreeIDs
         .intersection(visibleWorktreeIDs)

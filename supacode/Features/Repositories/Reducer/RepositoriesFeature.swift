@@ -145,6 +145,7 @@ struct RepositoriesFeature {
       invalidRoots: [String],
       roots: [URL]
     )
+    case selectRepository(Repository.ID?)
     case selectWorktree(Worktree.ID?, focusTerminal: Bool = false)
     case selectNextWorktree
     case selectPreviousWorktree
@@ -647,6 +648,12 @@ struct RepositoriesFeature {
         }
         state.sidebarSelectedWorktreeIDs = nextWorktreeIDs
         return .none
+
+      case .selectRepository(let repositoryID):
+        guard let repositoryID, state.repositories[id: repositoryID] != nil else { return .none }
+        state.selection = .repository(repositoryID)
+        state.sidebarSelectedWorktreeIDs = []
+        return .send(.delegate(.selectedWorktreeChanged(nil)))
 
       case .selectWorktree(let worktreeID, let focusTerminal):
         setSingleWorktreeSelection(worktreeID, state: &state)
@@ -2843,7 +2850,7 @@ struct RepositoriesFeature {
       ? pruneArchivedWorktreeIDs(availableWorktreeIDs: availableWorktreeIDs, state: &state)
       : false
     if !state.isShowingArchivedWorktrees, !state.isShowingCanvas,
-      !isSelectionValid(state.selectedWorktreeID, state: state)
+      !isSidebarSelectionValid(state.selection, state: state)
     {
       state.selection = nil
     }
@@ -2926,6 +2933,16 @@ struct RepositoriesFeature {
 extension RepositoriesFeature.State {
   var selectedWorktreeID: Worktree.ID? {
     selection?.worktreeID
+  }
+
+  var selectedRepositoryID: Repository.ID? {
+    guard case .repository(let repositoryID) = selection else { return nil }
+    return repositoryID
+  }
+
+  var selectedRepository: Repository? {
+    guard let selectedRepositoryID else { return nil }
+    return repositories[id: selectedRepositoryID]
   }
 
   var expandedRepositoryIDs: Set<Repository.ID> {
@@ -3654,6 +3671,22 @@ private func isSelectionValid(
   state.selectedRow(for: id) != nil
 }
 
+private func isSidebarSelectionValid(
+  _ selection: SidebarSelection?,
+  state: RepositoriesFeature.State
+) -> Bool {
+  switch selection {
+  case .worktree(let id):
+    return isSelectionValid(id, state: state)
+  case .repository(let id):
+    return state.repositories[id: id] != nil
+  case .archivedWorktrees, .canvas:
+    return true
+  case nil:
+    return false
+  }
+}
+
 private func setSingleWorktreeSelection(
   _ worktreeID: Worktree.ID?,
   state: inout RepositoriesFeature.State
@@ -3669,6 +3702,9 @@ private func setSingleWorktreeSelection(
 private func repositoryForWorktreeCreation(
   _ state: RepositoriesFeature.State
 ) -> Repository? {
+  if let selectedRepository = state.selectedRepository {
+    return selectedRepository
+  }
   if let selectedWorktreeID = state.selectedWorktreeID {
     if let pending = state.pendingWorktree(for: selectedWorktreeID) {
       return state.repositories[id: pending.repositoryID]

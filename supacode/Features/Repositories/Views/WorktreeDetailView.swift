@@ -160,6 +160,8 @@ struct WorktreeDetailView: View {
       selectedWorktreeSummaries: selectedWorktreeSummaries
     ) {
       MultiSelectedWorktreesDetailView(rows: selectedWorktreeSummaries)
+    } else if let selectedRepository = repositories.selectedRepository {
+      RepositoryDetailView(repository: selectedRepository)
     } else if let loadingInfo {
       WorktreeLoadingView(info: loadingInfo)
     } else if let selectedWorktree {

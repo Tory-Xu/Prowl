@@ -23,7 +23,9 @@ struct SidebarListView: View {
         } else {
           nextSelections.remove(.archivedWorktrees)
           nextSelections.remove(.canvas)
-          if let selectedWorktreeID = state.selectedWorktreeID {
+          if let selectedRepositoryID = state.selectedRepositoryID {
+            nextSelections = [.repository(selectedRepositoryID)]
+          } else if let selectedWorktreeID = state.selectedWorktreeID {
             nextSelections.insert(.worktree(selectedWorktreeID))
           }
         }
@@ -34,29 +36,6 @@ struct SidebarListView: View {
         let repositorySelections: [Repository.ID] = nextSelections.compactMap { selection in
           guard case .repository(let repositoryID) = selection else { return nil }
           return repositoryID
-        }
-        if !repositorySelections.isEmpty {
-          withAnimation(.easeOut(duration: 0.2)) {
-            for repositoryID in repositorySelections {
-              guard let repository = store.state.repositories[id: repositoryID],
-                !store.state.isRemovingRepository(repository)
-              else {
-                continue
-              }
-              if expandedRepoIDs.contains(repositoryID) {
-                expandedRepoIDs.remove(repositoryID)
-              } else {
-                expandedRepoIDs.insert(repositoryID)
-              }
-            }
-          }
-          nextSelections = Set(
-            nextSelections.filter {
-              if case .repository = $0 {
-                return false
-              }
-              return true
-            })
         }
 
         if nextSelections.contains(.canvas) {
@@ -71,11 +50,14 @@ struct SidebarListView: View {
           return
         }
 
+        if let repositoryID = repositorySelections.first {
+          sidebarSelections = [.repository(repositoryID)]
+          store.send(.selectRepository(repositoryID))
+          return
+        }
+
         let worktreeIDs = Set(nextSelections.compactMap(\.worktreeID))
         guard !worktreeIDs.isEmpty else {
-          if !repositorySelections.isEmpty {
-            return
-          }
           sidebarSelections = []
           store.send(.selectWorktree(nil))
           return
