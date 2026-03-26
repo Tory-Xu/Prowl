@@ -39,7 +39,10 @@ struct RepositorySectionView: View {
     let header = HStack {
       RepoHeaderRow(
         name: repository.name,
-        isRemoving: isRemovingRepository
+        isRemoving: isRemovingRepository,
+        tabCount: repository.worktrees.reduce(0) { count, worktree in
+          count + (terminalManager.stateIfExists(for: worktree.id)?.tabManager.tabs.count ?? 0)
+        }
       )
       .frame(maxWidth: .infinity, alignment: .leading)
       .background {
