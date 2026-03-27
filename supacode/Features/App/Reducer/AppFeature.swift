@@ -18,7 +18,7 @@ struct AppFeature {
     var commandPalette = CommandPaletteFeature.State()
     var openActionSelection: OpenWorktreeAction = .finder
     var selectedRunScript: String = ""
-    var selectedCustomCommands: [OnevcatCustomCommand] = []
+    var selectedCustomCommands: [UserCustomCommand] = []
     var runScriptDraft: String = ""
     var isRunScriptPromptPresented = false
     var runScriptStatusByWorktreeID: [Worktree.ID: Bool] = [:]
@@ -45,7 +45,7 @@ struct AppFeature {
     case commandPalette(CommandPaletteFeature.Action)
     case openActionSelectionChanged(OpenWorktreeAction)
     case worktreeSettingsLoaded(RepositorySettings, worktreeID: Worktree.ID)
-    case worktreeOnevcatSettingsLoaded(UserRepositorySettings, worktreeID: Worktree.ID)
+    case worktreeUserSettingsLoaded(UserRepositorySettings, worktreeID: Worktree.ID)
     case openSelectedWorktree
     case openWorktree(OpenWorktreeAction)
     case openWorktreeFailed(OpenActionError)
@@ -172,7 +172,7 @@ struct AppFeature {
         @Shared(.repositorySettings(rootURL)) var repositorySettings
         @Shared(.userRepositorySettings(rootURL)) var userRepositorySettings
         let settings = repositorySettings
-        let onevcatSettings = userRepositorySettings
+        let userSettings = userRepositorySettings
         var effects: [Effect<Action>] = []
         if !isPlainFolderSelection {
           effects.append(
@@ -199,7 +199,7 @@ struct AppFeature {
         effects.append(
           .concatenate(
             .send(.worktreeSettingsLoaded(settings, worktreeID: worktreeID)),
-            .send(.worktreeOnevcatSettingsLoaded(onevcatSettings, worktreeID: worktreeID))
+            .send(.worktreeUserSettingsLoaded(userSettings, worktreeID: worktreeID))
           )
         )
         return .merge(effects)
@@ -273,7 +273,7 @@ struct AppFeature {
             rootURL: repository.rootURL,
             repositoryKind: repository.kind,
             settings: repositorySettings,
-            onevcatSettings: userRepositorySettings
+            userSettings: userRepositorySettings
           )
         case .general, .notifications, .worktree, .updates, .advanced, .github:
           state.settings.repositorySettings = nil
@@ -599,7 +599,7 @@ struct AppFeature {
         @Shared(.userRepositorySettings(rootURL)) var userRepositorySettings
         return .concatenate(
           .send(.worktreeSettingsLoaded(repositorySettings, worktreeID: worktreeID)),
-          .send(.worktreeOnevcatSettingsLoaded(userRepositorySettings, worktreeID: worktreeID))
+          .send(.worktreeUserSettingsLoaded(userRepositorySettings, worktreeID: worktreeID))
         )
 
       case .worktreeSettingsLoaded(let settings, let worktreeID):
@@ -617,7 +617,7 @@ struct AppFeature {
         state.selectedRunScript = settings.runScript
         return .none
 
-      case .worktreeOnevcatSettingsLoaded(let settings, let worktreeID):
+      case .worktreeUserSettingsLoaded(let settings, let worktreeID):
         guard state.repositories.selectedTerminalWorktree?.id == worktreeID else {
           return .none
         }

@@ -33,7 +33,7 @@ struct UserRepositorySettingsKeyTests {
 
     let customSettings = UserRepositorySettings(
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Test",
           systemImage: "checkmark.circle",
           command: "swift test",
@@ -68,7 +68,7 @@ struct UserRepositorySettingsKeyTests {
 
     let customSettings = UserRepositorySettings(
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Legacy",
           systemImage: "terminal",
           command: "echo legacy",

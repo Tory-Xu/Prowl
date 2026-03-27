@@ -150,7 +150,7 @@ struct SettingsFeatureTests {
       rootURL: rootURL,
       repositoryKind: .git,
       settings: .default,
-      onevcatSettings: .default
+      userSettings: .default
     )
     let store = TestStore(initialState: state) {
       SettingsFeature()
@@ -197,7 +197,7 @@ struct SettingsFeatureTests {
         rootURL: rootURL,
         repositoryKind: .git,
         settings: .default,
-        onevcatSettings: .default
+        userSettings: .default
       )
     }
     await store.receive(\.delegate.settingsChanged)
@@ -239,7 +239,7 @@ struct SettingsFeatureTests {
       rootURL: rootURL,
       repositoryKind: .git,
       settings: .default,
-      onevcatSettings: .default
+      userSettings: .default
     )
     let store = TestStore(initialState: state) {
       SettingsFeature()

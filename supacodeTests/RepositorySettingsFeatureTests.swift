@@ -37,10 +37,10 @@ struct RepositorySettingsFeatureTests {
     let settingsData = try #require(try? JSONEncoder().encode(settingsFile))
     try #require(try? settingsStorage.storage.save(settingsData, settingsFileURL))
 
-    let onevcatSettingsData = try #require(try? JSONEncoder().encode(storedOnevcatSettings))
+    let userSettingsData = try #require(try? JSONEncoder().encode(storedOnevcatSettings))
     try #require(
       try? localStorage.save(
-        onevcatSettingsData,
+        userSettingsData,
         at: SupacodePaths.userRepositorySettingsURL(for: rootURL)
       )
     )
@@ -50,7 +50,7 @@ struct RepositorySettingsFeatureTests {
         rootURL: rootURL,
         repositoryKind: .plain,
         settings: .default,
-        onevcatSettings: .default
+        userSettings: .default
       )
     ) {
       RepositorySettingsFeature()
@@ -75,7 +75,7 @@ struct RepositorySettingsFeatureTests {
     await store.send(.task)
     await store.receive(\.settingsLoaded, timeout: .seconds(5)) {
       $0.settings = storedSettings
-      $0.onevcatSettings = storedOnevcatSettings
+      $0.userSettings = storedOnevcatSettings
       $0.globalDefaultWorktreeBaseDirectoryPath = expectedDefaultWorktreeBaseDirectoryPath
     }
     await store.finish(timeout: .seconds(5))
@@ -92,7 +92,7 @@ struct RepositorySettingsFeatureTests {
       rootURL: URL(fileURLWithPath: "/tmp/folder"),
       repositoryKind: .plain,
       settings: .default,
-      onevcatSettings: .default
+      userSettings: .default
     )
 
     #expect(state.showsWorktreeSettings == false)
@@ -114,7 +114,7 @@ struct RepositorySettingsFeatureTests {
         rootURL: rootURL,
         repositoryKind: .plain,
         settings: .default,
-        onevcatSettings: .default
+        userSettings: .default
       )
     ) {
       RepositorySettingsFeature()
@@ -126,7 +126,7 @@ struct RepositorySettingsFeatureTests {
 
     let conflicted = UserRepositorySettings(
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Run tests",
           systemImage: "terminal",
           command: "swift test",
@@ -139,8 +139,8 @@ struct RepositorySettingsFeatureTests {
       ]
     )
 
-    await store.send(.binding(.set(\.onevcatSettings, conflicted))) {
-      $0.onevcatSettings = conflicted
+    await store.send(.binding(.set(\.userSettings, conflicted))) {
+      $0.userSettings = conflicted
     }
     await store.receive(\.delegate.settingsChanged)
 

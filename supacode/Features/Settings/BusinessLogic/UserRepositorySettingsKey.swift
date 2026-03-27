@@ -107,15 +107,4 @@ nonisolated extension SharedReaderKey where Self == UserRepositorySettingsKey.De
   static func userRepositorySettings(_ rootURL: URL) -> Self {
     Self[UserRepositorySettingsKey(rootURL: rootURL), default: .default]
   }
-
-  @available(*, deprecated, renamed: "userRepositorySettings")
-  static func onevcatRepositorySettings(_ rootURL: URL) -> Self {
-    userRepositorySettings(rootURL)
-  }
 }
-
-@available(*, deprecated, renamed: "UserRepositorySettingsKeyID")
-typealias OnevcatRepositorySettingsKeyID = UserRepositorySettingsKeyID
-
-@available(*, deprecated, renamed: "UserRepositorySettingsKey")
-typealias OnevcatRepositorySettingsKey = UserRepositorySettingsKey

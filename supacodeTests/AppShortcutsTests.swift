@@ -84,7 +84,7 @@ struct AppShortcutsTests {
 
   @Test func userOverrideConflictsDetectsReservedAppShortcuts() {
     let commands = [
-      OnevcatCustomCommand(
+      UserCustomCommand(
         title: "Build",
         systemImage: "hammer",
         command: "swift build",
@@ -94,7 +94,7 @@ struct AppShortcutsTests {
           modifiers: UserCustomShortcutModifiers(command: true, control: true)
         )
       ),
-      OnevcatCustomCommand(
+      UserCustomCommand(
         title: "Deploy",
         systemImage: "rocket",
         command: "make release",

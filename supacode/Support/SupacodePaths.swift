@@ -133,21 +133,6 @@ nonisolated enum SupacodePaths {
     rootURL.standardizedFileURL.appending(path: "supacode.onevcat.json", directoryHint: .notDirectory)
   }
 
-  @available(*, deprecated, renamed: "userRepositorySettingsURL(for:)")
-  static func onevcatRepositorySettingsURL(for rootURL: URL) -> URL {
-    userRepositorySettingsURL(for: rootURL)
-  }
-
-  @available(*, deprecated, renamed: "legacyUserRepositorySettingsURL(for:)")
-  static func legacyOnevcatRepositorySettingsURL(for rootURL: URL) -> URL {
-    legacyUserRepositorySettingsURL(for: rootURL)
-  }
-
-  @available(*, deprecated, renamed: "originalLegacyUserRepositorySettingsURL(for:)")
-  static func originalLegacyOnevcatRepositorySettingsURL(for rootURL: URL) -> URL {
-    originalLegacyUserRepositorySettingsURL(for: rootURL)
-  }
-
   private static func repositorySettingsDirectory(for rootURL: URL) -> URL {
     let name = repositorySettingsDirectoryName(for: rootURL)
     return repositorySettingsDirectory.appending(path: name, directoryHint: .isDirectory)

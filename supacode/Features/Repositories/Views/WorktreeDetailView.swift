@@ -12,7 +12,7 @@ struct WorktreeDetailView: View {
     let showExtras: Bool
     let runScriptEnabled: Bool
     let runScriptIsRunning: Bool
-    let customCommands: [OnevcatCustomCommand]
+    let customCommands: [UserCustomCommand]
   }
 
   @Bindable var store: StoreOf<AppFeature>
@@ -344,7 +344,7 @@ struct WorktreeDetailView: View {
     let showExtras: Bool
     let runScriptEnabled: Bool
     let runScriptIsRunning: Bool
-    let customCommands: [OnevcatCustomCommand]
+    let customCommands: [UserCustomCommand]
 
     var runScriptHelpText: String {
       "Run Script (\(AppShortcuts.runScript.display))"
@@ -491,15 +491,15 @@ struct WorktreeDetailView: View {
       }
     }
 
-    private func customCommand(at index: Int) -> OnevcatCustomCommand? {
+    private func customCommand(at index: Int) -> UserCustomCommand? {
       guard toolbarState.customCommands.indices.contains(index) else {
         return nil
       }
       return toolbarState.customCommands[index]
     }
 
-    private func customCommandButton(_ command: OnevcatCustomCommand, index: Int) -> some View {
-      OnevcatCustomCommandToolbarButton(
+    private func customCommandButton(_ command: UserCustomCommand, index: Int) -> some View {
+      UserCustomCommandToolbarButton(
         title: command.resolvedTitle,
         systemImage: command.resolvedSystemImage,
         shortcut: command.shortcut?.isValid == true ? command.shortcut?.display : nil,
@@ -677,7 +677,7 @@ private struct RunScriptToolbarButton: View {
   }
 }
 
-private struct OnevcatCustomCommandToolbarButton: View {
+private struct UserCustomCommandToolbarButton: View {
   let title: String
   let systemImage: String
   let shortcut: String?
@@ -728,7 +728,7 @@ private struct WorktreeToolbarPreview: View {
       runScriptEnabled: true,
       runScriptIsRunning: false,
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Test",
           systemImage: "checkmark.circle.fill",
           command: "swift test",

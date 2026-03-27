@@ -152,7 +152,7 @@ enum AppShortcuts {
   ]
 
   static func userOverrideConflicts(
-    in commands: [OnevcatCustomCommand]
+    in commands: [UserCustomCommand]
   ) -> [CustomCommandOverrideConflict] {
     var seen = Set<String>()
     return commands.compactMap { command in

@@ -27,9 +27,9 @@ struct AppFeaturePlainFolderTerminalTests {
       settingsFileURL
     )
 
-    let onevcatSettings = UserRepositorySettings(
+    let userSettings = UserRepositorySettings(
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Watch",
           systemImage: "terminal",
           command: "pnpm test --watch",
@@ -39,7 +39,7 @@ struct AppFeaturePlainFolderTerminalTests {
       ]
     )
     try localStorage.save(
-      JSONEncoder().encode(onevcatSettings),
+      JSONEncoder().encode(userSettings),
       at: SupacodePaths.userRepositorySettingsURL(for: repository.rootURL)
     )
 
@@ -71,8 +71,8 @@ struct AppFeaturePlainFolderTerminalTests {
       $0.openActionSelection = .terminal
       $0.selectedRunScript = "pnpm dev"
     }
-    await store.receive(\.worktreeOnevcatSettingsLoaded) {
-      $0.selectedCustomCommands = onevcatSettings.customCommands
+    await store.receive(\.worktreeUserSettingsLoaded) {
+      $0.selectedCustomCommands = userSettings.customCommands
     }
     await store.finish()
 
@@ -136,7 +136,7 @@ struct AppFeaturePlainFolderTerminalTests {
 
     let conflicted = UserRepositorySettings(
       customCommands: [
-        OnevcatCustomCommand(
+        UserCustomCommand(
           title: "Build",
           systemImage: "hammer",
           command: "swift build",
@@ -149,7 +149,7 @@ struct AppFeaturePlainFolderTerminalTests {
       ]
     )
 
-    await store.send(.worktreeOnevcatSettingsLoaded(conflicted, worktreeID: repository.id)) {
+    await store.send(.worktreeUserSettingsLoaded(conflicted, worktreeID: repository.id)) {
       $0.selectedCustomCommands = conflicted.customCommands
     }
     await store.finish()
@@ -166,7 +166,7 @@ struct AppFeaturePlainFolderTerminalTests {
       settings: SettingsFeature.State()
     )
     state.selectedCustomCommands = [
-      OnevcatCustomCommand(
+      UserCustomCommand(
         title: "Watch",
         systemImage: "terminal",
         command: "pnpm test --watch",

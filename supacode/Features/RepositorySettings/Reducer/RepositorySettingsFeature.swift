@@ -8,7 +8,7 @@ struct RepositorySettingsFeature {
     var rootURL: URL
     var repositoryKind: Repository.Kind
     var settings: RepositorySettings
-    var onevcatSettings: UserRepositorySettings
+    var userSettings: UserRepositorySettings
     var globalDefaultWorktreeBaseDirectoryPath: String?
     var isBareRepository = false
     var branchOptions: [String] = []
@@ -87,14 +87,14 @@ struct RepositorySettingsFeature {
         @Shared(.userRepositorySettings(rootURL)) var userRepositorySettings
         @Shared(.settingsFile) var settingsFile
         let settings = repositorySettings
-        let onevcatSettings = userRepositorySettings
+        let userSettings = userRepositorySettings
         let globalDefaultWorktreeBaseDirectoryPath =
           settingsFile.global.defaultWorktreeBaseDirectoryPath
         guard state.capabilities.supportsRepositoryGitSettings else {
           return .send(
             .settingsLoaded(
               settings,
-              onevcatSettings,
+              userSettings,
               isBareRepository: false,
               globalDefaultWorktreeBaseDirectoryPath: globalDefaultWorktreeBaseDirectoryPath
             )
@@ -106,7 +106,7 @@ struct RepositorySettingsFeature {
           await send(
             .settingsLoaded(
               settings,
-              onevcatSettings,
+              userSettings,
               isBareRepository: isBareRepository,
               globalDefaultWorktreeBaseDirectoryPath: globalDefaultWorktreeBaseDirectoryPath
             )
@@ -126,7 +126,7 @@ struct RepositorySettingsFeature {
         }
 
       case .settingsLoaded(
-        let settings, let onevcatSettings, let isBareRepository, let globalDefaultWorktreeBaseDirectoryPath
+        let settings, let userSettings, let isBareRepository, let globalDefaultWorktreeBaseDirectoryPath
       ):
         var updatedSettings = settings
         updatedSettings.worktreeBaseDirectoryPath = SupacodePaths.normalizedWorktreeBaseDirectoryPath(
@@ -138,7 +138,7 @@ struct RepositorySettingsFeature {
           updatedSettings.copyUntrackedOnWorktreeCreate = false
         }
         state.settings = updatedSettings
-        state.onevcatSettings = onevcatSettings.normalized()
+        state.userSettings = userSettings.normalized()
         state.globalDefaultWorktreeBaseDirectoryPath =
           SupacodePaths.normalizedWorktreeBaseDirectoryPath(globalDefaultWorktreeBaseDirectoryPath)
         state.isBareRepository = isBareRepository
@@ -166,7 +166,7 @@ struct RepositorySettingsFeature {
           state.settings.copyIgnoredOnWorktreeCreate = false
           state.settings.copyUntrackedOnWorktreeCreate = false
         }
-        state.onevcatSettings = state.onevcatSettings.normalized()
+        state.userSettings = state.userSettings.normalized()
         let rootURL = state.rootURL
         var normalizedSettings = state.settings
         normalizedSettings.worktreeBaseDirectoryPath = SupacodePaths.normalizedWorktreeBaseDirectoryPath(
@@ -175,12 +175,12 @@ struct RepositorySettingsFeature {
         )
         @Shared(.repositorySettings(rootURL)) var repositorySettings
         @Shared(.userRepositorySettings(rootURL)) var userRepositorySettings
-        let previousOnevcatSettings = userRepositorySettings
+        let previousUserSettings = userRepositorySettings
         $repositorySettings.withLock { $0 = normalizedSettings }
-        $userRepositorySettings.withLock { $0 = state.onevcatSettings }
-        if previousOnevcatSettings != state.onevcatSettings {
+        $userRepositorySettings.withLock { $0 = state.userSettings }
+        if previousUserSettings != state.userSettings {
           let logger = SupaLogger("Settings")
-          for conflict in AppShortcuts.userOverrideConflicts(in: state.onevcatSettings.customCommands) {
+          for conflict in AppShortcuts.userOverrideConflicts(in: state.userSettings.customCommands) {
             logger.warning(
               "shortcut_conflict reason=userOverride app_action=\"\(conflict.appActionTitle)\" "
                 + "app_shortcut=\(conflict.appShortcutDisplay) custom_command=\"\(conflict.commandTitle)\" "
