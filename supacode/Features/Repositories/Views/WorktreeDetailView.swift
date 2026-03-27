@@ -246,6 +246,12 @@ struct WorktreeDetailView: View {
       .focusedSceneValue(\.endSearchAction, actions.endSearch)
       .focusedSceneValue(\.selectPreviousTerminalTabAction, actions.selectPreviousTerminalTab)
       .focusedSceneValue(\.selectNextTerminalTabAction, actions.selectNextTerminalTab)
+      .focusedSceneValue(\.selectPreviousTerminalPaneAction, actions.selectPreviousTerminalPane)
+      .focusedSceneValue(\.selectNextTerminalPaneAction, actions.selectNextTerminalPane)
+      .focusedSceneValue(\.selectTerminalPaneAboveAction, actions.selectTerminalPaneAbove)
+      .focusedSceneValue(\.selectTerminalPaneBelowAction, actions.selectTerminalPaneBelow)
+      .focusedSceneValue(\.selectTerminalPaneLeftAction, actions.selectTerminalPaneLeft)
+      .focusedSceneValue(\.selectTerminalPaneRightAction, actions.selectTerminalPaneRight)
       .focusedSceneValue(\.runScriptAction, actions.runScript)
       .focusedSceneValue(\.stopRunScriptAction, actions.stopRunScript)
   }
@@ -309,6 +315,12 @@ struct WorktreeDetailView: View {
       endSearch: action(.endSearch),
       selectPreviousTerminalTab: terminalBindingAction("previous_tab"),
       selectNextTerminalTab: terminalBindingAction("next_tab"),
+      selectPreviousTerminalPane: terminalBindingAction("goto_split:previous"),
+      selectNextTerminalPane: terminalBindingAction("goto_split:next"),
+      selectTerminalPaneAbove: terminalBindingAction("goto_split:up"),
+      selectTerminalPaneBelow: terminalBindingAction("goto_split:down"),
+      selectTerminalPaneLeft: terminalBindingAction("goto_split:left"),
+      selectTerminalPaneRight: terminalBindingAction("goto_split:right"),
       runScript: runScriptEnabled ? { store.send(.runScript) } : nil,
       stopRunScript: runScriptIsRunning ? { store.send(.stopRunScript) } : nil
     )
@@ -347,6 +359,12 @@ struct WorktreeDetailView: View {
     let endSearch: (() -> Void)?
     let selectPreviousTerminalTab: (() -> Void)?
     let selectNextTerminalTab: (() -> Void)?
+    let selectPreviousTerminalPane: (() -> Void)?
+    let selectNextTerminalPane: (() -> Void)?
+    let selectTerminalPaneAbove: (() -> Void)?
+    let selectTerminalPaneBelow: (() -> Void)?
+    let selectTerminalPaneLeft: (() -> Void)?
+    let selectTerminalPaneRight: (() -> Void)?
     let runScript: (() -> Void)?
     let stopRunScript: (() -> Void)?
   }

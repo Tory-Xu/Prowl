@@ -198,15 +198,6 @@ struct SupacodeApp: App {
         .help("Command Palette (\(AppShortcuts.commandPalette.display))")
       }
       UpdateCommands(store: store.scope(state: \.updates, action: \.updates))
-      CommandGroup(replacing: .windowArrangement) {
-        Button("Prowl") {
-          if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-          }
-        }
-        .help("Show main window")
-      }
       CommandGroup(replacing: .appSettings) {
         Button("Settings...") {
           SettingsWindowManager.shared.show()
