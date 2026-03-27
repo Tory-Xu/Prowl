@@ -355,6 +355,9 @@ struct AppFeature {
           }
         )
 
+      case .settings(.delegate(.terminalFontSizeChanged)):
+        return .none
+
       case .openActionSelectionChanged(let action):
         state.openActionSelection = action
         guard let worktree = state.repositories.selectedTerminalWorktree else {
@@ -786,6 +789,9 @@ struct AppFeature {
         return .send(.commandPalette(.setPresented(true)))
       case .terminalEvent(.setupScriptConsumed(let worktreeID)):
         return .send(.repositories(.consumeSetupScript(worktreeID)))
+
+      case .terminalEvent(.fontSizeChanged(let fontSize)):
+        return .send(.settings(.setTerminalFontSize(fontSize)))
 
       case .terminalEvent:
         return .none

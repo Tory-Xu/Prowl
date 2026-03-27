@@ -236,6 +236,9 @@ struct WorktreeDetailView: View {
       .focusedSceneValue(\.newTerminalAction, actions.newTerminal)
       .focusedValue(\.closeTabAction, actions.closeTab)
       .focusedValue(\.closeSurfaceAction, actions.closeSurface)
+      .focusedSceneValue(\.resetFontSizeAction, actions.resetFontSize)
+      .focusedSceneValue(\.increaseFontSizeAction, actions.increaseFontSize)
+      .focusedSceneValue(\.decreaseFontSizeAction, actions.decreaseFontSize)
       .focusedSceneValue(\.startSearchAction, actions.startSearch)
       .focusedSceneValue(\.searchSelectionAction, actions.searchSelection)
       .focusedSceneValue(\.navigateSearchNextAction, actions.navigateSearchNext)
@@ -267,11 +270,25 @@ struct WorktreeDetailView: View {
       }
     }
 
+    func fontSizeAction(_ bindingAction: String) -> (() -> Void)? {
+      if let action = canvasAction({ $0.performBindingActionOnFocusedSurface(bindingAction) }) {
+        return action
+      }
+      guard hasActiveWorktree, let selectedWorktree = repositories.selectedTerminalWorktree else { return nil }
+      return {
+        guard let state = terminalManager.stateIfExists(for: selectedWorktree.id) else { return }
+        _ = state.performBindingActionOnFocusedSurface(bindingAction)
+      }
+    }
+
     return FocusedActions(
       openSelectedWorktree: action(.openSelectedWorktree),
       newTerminal: action(.newTerminal),
       closeTab: canvasAction { $0.closeFocusedTab() } ?? action(.closeTab),
       closeSurface: canvasAction { $0.closeFocusedSurface() } ?? action(.closeSurface),
+      resetFontSize: fontSizeAction("reset_font_size"),
+      increaseFontSize: fontSizeAction("increase_font_size:1"),
+      decreaseFontSize: fontSizeAction("decrease_font_size:1"),
       startSearch: action(.startSearch),
       searchSelection: action(.searchSelection),
       navigateSearchNext: action(.navigateSearchNext),
@@ -305,6 +322,9 @@ struct WorktreeDetailView: View {
     let newTerminal: (() -> Void)?
     let closeTab: (() -> Void)?
     let closeSurface: (() -> Void)?
+    let resetFontSize: (() -> Void)?
+    let increaseFontSize: (() -> Void)?
+    let decreaseFontSize: (() -> Void)?
     let startSearch: (() -> Void)?
     let searchSelection: (() -> Void)?
     let navigateSearchNext: (() -> Void)?

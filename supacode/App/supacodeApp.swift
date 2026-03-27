@@ -124,7 +124,10 @@ struct SupacodeApp: App {
     _ghostty = State(initialValue: runtime)
     let shortcuts = GhosttyShortcutManager(runtime: runtime)
     _ghosttyShortcuts = State(initialValue: shortcuts)
-    let terminalManager = WorktreeTerminalManager(runtime: runtime)
+    let terminalManager = WorktreeTerminalManager(
+      runtime: runtime,
+      preferredFontSize: initialSettings.terminalFontSize
+    )
     _terminalManager = State(initialValue: terminalManager)
     let worktreeInfoWatcher = WorktreeInfoWatcherManager()
     _worktreeInfoWatcher = State(initialValue: worktreeInfoWatcher)
@@ -199,8 +202,7 @@ struct SupacodeApp: App {
             NSApp.activate(ignoringOtherApps: true)
           }
         }
-        .keyboardShortcut("0")
-        .help("Show main window (⌘0)")
+        .help("Show main window")
         Divider()
         Button("Minimize") {
           NSApp.keyWindow?.miniaturize(nil)

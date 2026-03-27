@@ -253,4 +253,53 @@ struct SettingsFeatureTests {
     #expect(store.state.repositorySettings?.globalDefaultWorktreeBaseDirectoryPath == expectedPath)
     #expect(settingsFile.global.defaultWorktreeBaseDirectoryPath == expectedPath)
   }
+
+  @Test(.dependencies) func setTerminalFontSizePersistsWithoutAnalyticsOrGlobalFanout() async {
+    var initialSettings = GlobalSettings.default
+    initialSettings.analyticsEnabled = true
+    initialSettings.terminalFontSize = nil
+    @Shared(.settingsFile) var settingsFile
+    $settingsFile.withLock { $0.global = initialSettings }
+    let capturedEvents = LockIsolated<[String]>([])
+
+    let store = TestStore(initialState: SettingsFeature.State(settings: initialSettings)) {
+      SettingsFeature()
+    } withDependencies: {
+      $0.analyticsClient.capture = { event, _ in
+        capturedEvents.withValue { $0.append(event) }
+      }
+    }
+
+    await store.send(.setTerminalFontSize(18)) {
+      $0.terminalFontSize = 18
+    }
+    await store.receive(\.delegate.terminalFontSizeChanged)
+    await store.finish()
+
+    #expect(settingsFile.global.terminalFontSize == 18)
+    #expect(capturedEvents.value.isEmpty)
+  }
+
+  @Test(.dependencies) func setTerminalFontSizeIgnoresDuplicateValue() async {
+    var initialSettings = GlobalSettings.default
+    initialSettings.analyticsEnabled = true
+    initialSettings.terminalFontSize = 18
+    @Shared(.settingsFile) var settingsFile
+    $settingsFile.withLock { $0.global = initialSettings }
+    let capturedEvents = LockIsolated<[String]>([])
+
+    let store = TestStore(initialState: SettingsFeature.State(settings: initialSettings)) {
+      SettingsFeature()
+    } withDependencies: {
+      $0.analyticsClient.capture = { event, _ in
+        capturedEvents.withValue { $0.append(event) }
+      }
+    }
+
+    await store.send(.setTerminalFontSize(18))
+    await store.finish()
+
+    #expect(settingsFile.global.terminalFontSize == 18)
+    #expect(capturedEvents.value.isEmpty)
+  }
 }
