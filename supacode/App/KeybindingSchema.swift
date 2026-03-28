@@ -287,11 +287,11 @@ nonisolated enum LegacyCustomCommandShortcutMigration {
         continue
       }
 
-      guard let shortcut = command.shortcut?.normalized() else {
+      guard let rawShortcut = command.shortcut else {
         continue
       }
 
-      guard shortcut.isValid else {
+      guard rawShortcut.isValid else {
         let issue = KeybindingMigrationIssue(
           commandTitle: command.resolvedTitle,
           reason: .invalidShortcut,
@@ -304,6 +304,7 @@ nonisolated enum LegacyCustomCommandShortcutMigration {
         continue
       }
 
+      let shortcut = rawShortcut.normalized()
       let binding = Keybinding(
         key: shortcut.key,
         modifiers: .init(shortcut.modifiers)
