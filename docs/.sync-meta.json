@@ -1,6 +1,6 @@
 {
   "_comment": "Metadata for the docs/ manual. The last_synced_commit is the commit at which docs/ was last verified against the implementation; the sync-docs skill (.claude/skills/sync-docs/SKILL.md) diffs HEAD against it and updates this file. Committed to git on purpose so the baseline persists across sessions and machines. A dotfile + .json so a future docs website does not render it as a page.",
-  "last_synced_commit": "475e5656e45ed2a7419f622004f12b569c7f6cd2",
-  "last_synced_date": "2026-08-22",
-  "note": "Verified the terminal input bridge and scrollback selection behavior; documented focus-transfer clicks and drag-selection ownership. Unrelated CLI version and Claude screen-profile changes did not require documentation updates."
+  "last_synced_commit": "0234418d830fbcabf3791f1b4a6e22dc59d83ec1",
+  "last_synced_date": "2026-08-25",
+  "note": "Verified runtime-shared terminal mouse press ownership against the existing scrollback, focus-transfer, and cross-pane release documentation; no manual text changes were required."
 }
