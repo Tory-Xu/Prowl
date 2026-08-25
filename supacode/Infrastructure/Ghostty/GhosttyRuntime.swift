@@ -53,8 +53,13 @@ final class GhosttyRuntime {
   var runtimeOverrideSignature = ""
   var onConfigChange: (() -> Void)?
   var onQuit: (() -> Void)?
+  let mouseCoordinator: GhosttySurfaceMouseCoordinator
 
-  init(initialColorScheme: ColorScheme? = nil) {
+  init(
+    initialColorScheme: ColorScheme? = nil,
+    mouseCoordinator: GhosttySurfaceMouseCoordinator? = nil
+  ) {
+    self.mouseCoordinator = mouseCoordinator ?? GhosttySurfaceMouseCoordinator()
     guard let config = Self.loadConfig() else {
       preconditionFailure("ghostty_config_new failed")
     }

@@ -25,18 +25,17 @@ extension GhosttySurfaceView {
   }
 
   override func mouseDown(with event: NSEvent) {
-    resetLeftMousePressForNewMouseDown()
-    if sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_LEFT) {
-      markLeftMousePressForwarded()
+    runtime.mouseCoordinator.forwardLeftMouseDown(for: id) {
+      sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_LEFT)
     }
   }
 
   override func mouseUp(with event: NSEvent) {
-    let didSendPress = consumeLeftMouseReleaseOwnership()
-    prevPressureStage = 0
-    if didSendPress {
-      sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_LEFT)
+    runtime.mouseCoordinator.forwardLeftMouseUp(for: id) {
+      _ = sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_LEFT)
     }
+    prevPressureStage = 0
+    onMousePressureResetForTesting?()
     if let surface {
       ghostty_surface_mouse_pressure(surface, 0, 0)
     }
@@ -178,16 +177,7 @@ extension GhosttySurfaceView {
   }
 
   func localEventLeftMouseDown(_ event: NSEvent) -> NSEvent? {
-    resetLeftMousePressForNewMouseDown()
-    guard let window, event.window != nil, window == event.window else { return event }
-    guard window.contentView?.hitTest(event.locationInWindow) == self else { return event }
-    guard window.firstResponder !== self else { return event }
-    if NSApp.isActive, window.isKeyWindow {
-      guard window.makeFirstResponder(self) else { return event }
-      return nil
-    }
-    window.makeFirstResponder(self)
-    return event
+    runtime.mouseCoordinator.localEventLeftMouseDown(event, for: self)
   }
 
   func scrollMods(for event: NSEvent) -> ghostty_input_scroll_mods_t {
@@ -230,6 +220,9 @@ extension GhosttySurfaceView {
     state: ghostty_input_mouse_state_e,
     button: ghostty_input_mouse_button_e
   ) -> Bool {
+    if let mouseButtonHandlerForTesting {
+      return mouseButtonHandlerForTesting(state, button)
+    }
     guard let surface else { return false }
     let mods = ghosttyMods(event.modifierFlags)
     ghostty_surface_mouse_button(surface, state, button, mods)

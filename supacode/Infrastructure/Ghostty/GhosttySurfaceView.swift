@@ -80,28 +80,6 @@ final class GhosttySurfaceView: NSView, Identifiable {
     }
   }
 
-  /// Tracks whether this surface forwarded the current left-button press to Ghostty.
-  ///
-  /// AppKit may deliver a release to a different surface than the one that received the
-  /// press (for example, when a drag crosses a split). Keeping the ownership transition
-  /// explicit prevents those unmatched releases from changing Ghostty's selection state.
-  struct LeftMousePressState {
-    private(set) var ownsPress = false
-
-    mutating func resetForNewMouseDown() {
-      ownsPress = false
-    }
-
-    mutating func markPressForwarded() {
-      ownsPress = true
-    }
-
-    mutating func consumeRelease() -> Bool {
-      defer { ownsPress = false }
-      return ownsPress
-    }
-  }
-
   final class CachedValue<T> {
     private var value: T?
     private let fetch: () -> T
@@ -176,7 +154,6 @@ final class GhosttySurfaceView: NSView, Identifiable {
   var lastPerformKeyEvent: TimeInterval?
   private var currentCursor: NSCursor = .iBeam
   var focused = false
-  private var leftMousePressState = LeftMousePressState()
   private var detachedFocusClearTask: Task<Void, Never>?
   var markedText = NSMutableAttributedString()
   var keyboardLayoutChangeKeyUpSuppression: KeyboardLayoutChangeKeyUpSuppression?
@@ -222,20 +199,10 @@ final class GhosttySurfaceView: NSView, Identifiable {
   var onFontSizeShortcut: (() -> Void)?
   var onOcclusionAppliedForTesting: ((Bool) -> Void)?
   var attachmentStateForTesting: (() -> (hasSuperview: Bool, hasWindow: Bool))?
+  var mouseButtonHandlerForTesting: ((ghostty_input_mouse_state_e, ghostty_input_mouse_button_e) -> Bool)?
+  var onMousePressureResetForTesting: (() -> Void)?
 
   var accessibilityPaneIndexHelp: String?
-
-  func resetLeftMousePressForNewMouseDown() {
-    leftMousePressState.resetForNewMouseDown()
-  }
-
-  func markLeftMousePressForwarded() {
-    leftMousePressState.markPressForwarded()
-  }
-
-  func consumeLeftMouseReleaseOwnership() -> Bool {
-    leftMousePressState.consumeRelease()
-  }
 
   private static let mouseCursorMap: [ghostty_action_mouse_shape_e: NSCursor] = [
     GHOSTTY_MOUSE_SHAPE_DEFAULT: .arrow,

@@ -103,3 +103,6 @@ Action routing is layered, mirroring Ghostty's own target model:
 - Updated 2026-05-30: text & key-event safety — text-free ABI fork backport (#286),
   explicit-length text decoding (#348), no text reads from modifier key events (#374) —
   see [003-text-and-key-event-safety.md](003-text-and-key-event-safety.md)
+- Updated 2026-08-25: runtime-shared mouse press ownership prevents focus-transfer clicks
+  and cross-pane releases from corrupting terminal selection — see
+  [004-mouse-selection-ownership.md](004-mouse-selection-ownership.md)

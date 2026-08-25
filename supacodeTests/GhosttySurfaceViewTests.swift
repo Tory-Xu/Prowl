@@ -97,27 +97,168 @@ struct GhosttySurfaceViewTests {
     #expect(!GhosttySurfaceView.hasKeyEquivalentFocusOwnership(cachedFocused: false, isActualFirstResponder: true))
   }
 
-  @Test func leftMouseReleaseRequiresOwnedPress() {
-    var state = GhosttySurfaceView.LeftMousePressState()
+  @Test func leftMouseReleaseRequiresSharedOwnedPress() throws {
+    let runtime = GhosttyRuntime()
+    let surfaceView = GhosttySurfaceView(
+      runtime: runtime,
+      workingDirectory: nil,
+      context: GHOSTTY_SURFACE_CONTEXT_TAB,
+      skipsSurfaceCreationForTesting: true
+    )
+    let mouseDown = try makeMouseEvent(type: .leftMouseDown)
+    let mouseUp = try makeMouseEvent(type: .leftMouseUp)
+    var pressCount = 0
+    var releaseCount = 0
+    var pressureResetCount = 0
+    surfaceView.mouseButtonHandlerForTesting = { state, button in
+      #expect(button == GHOSTTY_MOUSE_LEFT)
+      if state == GHOSTTY_MOUSE_PRESS {
+        pressCount += 1
+      } else if state == GHOSTTY_MOUSE_RELEASE {
+        releaseCount += 1
+      }
+      return true
+    }
+    surfaceView.onMousePressureResetForTesting = { pressureResetCount += 1 }
 
-    let releaseWithoutPress = state.consumeRelease()
-    #expect(!releaseWithoutPress)
+    surfaceView.prevPressureStage = 2
+    surfaceView.mouseUp(with: mouseUp)
+    #expect(releaseCount == 0)
+    #expect(surfaceView.prevPressureStage == 0)
 
-    state.markPressForwarded()
-    let ownedRelease = state.consumeRelease()
-    let duplicateRelease = state.consumeRelease()
-    #expect(ownedRelease)
-    #expect(!duplicateRelease)
+    surfaceView.mouseDown(with: mouseDown)
+    surfaceView.prevPressureStage = 2
+    surfaceView.mouseUp(with: mouseUp)
+    surfaceView.mouseUp(with: mouseUp)
+
+    #expect(pressCount == 1)
+    #expect(releaseCount == 1)
+    #expect(pressureResetCount == 3)
+    #expect(surfaceView.prevPressureStage == 0)
   }
 
-  @Test func newLeftMouseDownClearsStaleOwnership() {
-    var state = GhosttySurfaceView.LeftMousePressState()
+  @Test func crossPaneMouseReleaseClearsSharedOwnershipAndResetsPressure() throws {
+    let runtime = GhosttyRuntime()
+    let paneA = GhosttySurfaceView(
+      runtime: runtime,
+      workingDirectory: nil,
+      context: GHOSTTY_SURFACE_CONTEXT_SPLIT,
+      skipsSurfaceCreationForTesting: true
+    )
+    let paneB = GhosttySurfaceView(
+      runtime: runtime,
+      workingDirectory: nil,
+      context: GHOSTTY_SURFACE_CONTEXT_SPLIT,
+      skipsSurfaceCreationForTesting: true
+    )
+    let mouseDown = try makeMouseEvent(type: .leftMouseDown)
+    let mouseUp = try makeMouseEvent(type: .leftMouseUp)
+    var paneAReleaseCount = 0
+    var paneBReleaseCount = 0
+    var paneAPressureResetCount = 0
+    var paneBPressureResetCount = 0
+    paneA.mouseButtonHandlerForTesting = { state, _ in
+      if state == GHOSTTY_MOUSE_RELEASE {
+        paneAReleaseCount += 1
+      }
+      return true
+    }
+    paneB.mouseButtonHandlerForTesting = { state, _ in
+      if state == GHOSTTY_MOUSE_RELEASE {
+        paneBReleaseCount += 1
+      }
+      return true
+    }
+    paneA.onMousePressureResetForTesting = { paneAPressureResetCount += 1 }
+    paneB.onMousePressureResetForTesting = { paneBPressureResetCount += 1 }
 
-    state.markPressForwarded()
-    state.resetForNewMouseDown()
+    paneB.mouseDown(with: mouseDown)
+    paneA.prevPressureStage = 2
+    paneA.mouseUp(with: mouseUp)
+    paneB.prevPressureStage = 2
+    paneB.mouseUp(with: mouseUp)
 
-    let releaseAfterReset = state.consumeRelease()
-    #expect(!releaseAfterReset)
+    #expect(paneAReleaseCount == 0)
+    #expect(paneBReleaseCount == 0)
+    #expect(paneAPressureResetCount == 1)
+    #expect(paneBPressureResetCount == 1)
+    #expect(paneA.prevPressureStage == 0)
+    #expect(paneB.prevPressureStage == 0)
+  }
+
+  @Test func focusTransferClickClearsLaterPaneMouseOwnershipBeforeRelease() throws {
+    let mouseCoordinator = GhosttySurfaceMouseCoordinator(isActiveKeyWindow: { _ in true })
+    let runtime = GhosttyRuntime(mouseCoordinator: mouseCoordinator)
+    let paneA = GhosttySurfaceView(
+      runtime: runtime,
+      workingDirectory: nil,
+      context: GHOSTTY_SURFACE_CONTEXT_SPLIT,
+      skipsSurfaceCreationForTesting: true
+    )
+    let paneB = GhosttySurfaceView(
+      runtime: runtime,
+      workingDirectory: nil,
+      context: GHOSTTY_SURFACE_CONTEXT_SPLIT,
+      skipsSurfaceCreationForTesting: true
+    )
+    let windowSize = CGSize(width: 400, height: 200)
+    let window = NSWindow(
+      contentRect: NSRect(origin: .zero, size: windowSize),
+      styleMask: [.borderless],
+      backing: .buffered,
+      defer: false
+    )
+    defer { window.orderOut(nil) }
+
+    let contentView = NSView(frame: NSRect(origin: .zero, size: windowSize))
+    paneA.frame = NSRect(x: 0, y: 0, width: 200, height: 200)
+    paneB.frame = NSRect(x: 200, y: 0, width: 200, height: 200)
+    contentView.addSubview(paneA)
+    contentView.addSubview(paneB)
+    window.contentView = contentView
+    window.orderFront(nil)
+    #expect(window.makeFirstResponder(paneB))
+
+    var paneBReleaseCount = 0
+    var paneBPressureResetCount = 0
+    paneB.mouseButtonHandlerForTesting = { state, _ in
+      if state == GHOSTTY_MOUSE_RELEASE {
+        paneBReleaseCount += 1
+      }
+      return true
+    }
+    paneB.onMousePressureResetForTesting = { paneBPressureResetCount += 1 }
+
+    let stalePress = try makeMouseEvent(
+      type: .leftMouseDown,
+      window: window,
+      location: NSPoint(x: 300, y: 100)
+    )
+    paneB.mouseDown(with: stalePress)
+
+    let focusClick = try makeMouseEvent(
+      type: .leftMouseDown,
+      window: window,
+      location: NSPoint(x: 100, y: 100)
+    )
+    // Pane A installed its monitor before pane B. Consuming here models AppKit stopping
+    // monitor dispatch before pane B's monitor can observe the new mouse-down.
+    let result = paneA.localEventLeftMouseDown(focusClick)
+    #expect(result == nil)
+    #expect(window.firstResponder === paneA)
+
+    paneB.prevPressureStage = 2
+    paneB.mouseUp(
+      with: try makeMouseEvent(
+        type: .leftMouseUp,
+        window: window,
+        location: NSPoint(x: 100, y: 100)
+      )
+    )
+
+    #expect(paneBReleaseCount == 0)
+    #expect(paneBPressureResetCount == 1)
+    #expect(paneB.prevPressureStage == 0)
   }
 
   @Test func contentViewHitTestFindsScrolledSurface() throws {
@@ -590,6 +731,26 @@ struct GhosttySurfaceViewTests {
         charactersIgnoringModifiers: charactersIgnoringModifiers,
         isARepeat: false,
         keyCode: keyCode
+      )
+    )
+  }
+
+  private func makeMouseEvent(
+    type: NSEvent.EventType,
+    window: NSWindow? = nil,
+    location: NSPoint = .zero
+  ) throws -> NSEvent {
+    try #require(
+      NSEvent.mouseEvent(
+        with: type,
+        location: location,
+        modifierFlags: [],
+        timestamp: 1,
+        windowNumber: window?.windowNumber ?? 0,
+        context: nil,
+        eventNumber: 1,
+        clickCount: 1,
+        pressure: 1
       )
     )
   }
